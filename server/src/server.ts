@@ -1,21 +1,25 @@
 import express from 'express';
-import path from 'node:path';
-import db from './config/connection.js';
-import routes from './routes/index.js';
+import { ApolloServer } from '@apollo/server';
+import { expressMiddleware } from '@apollo/server/express4';
+import typeDefs from './routes/api/index'; // Use typeDefs from routes
+import resolvers from './routes/api/index'; // Use resolvers from routes
+import { connectDB } from './config/connection';
+import authMiddleware from './services/auth';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  context: ({ req }) => authMiddleware(req),
+});
 
-// if we're in production, serve client/build as static assets
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/build')));
+async function startServer() {
+  await connectDB();
+  await server.start();
+  app.use('/graphql', expressMiddleware(server));
+  app.listen(4000, () => console.log('Server running on http://localhost:4000/graphql'));
 }
 
-app.use(routes);
+startServer();
 
-db.once('open', () => {
-  app.listen(PORT, () => console.log(`🌍 Now listening on localhost:${PORT}`));
-});
