@@ -1,20 +1,42 @@
 import { Schema, model } from 'mongoose';
 import bcrypt from 'bcrypt';
 
-const userSchema = new Schema({
-  username: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  savedBooks: [
-    {
-      bookId: String,
-      authors: [String],
-      description: String,
-      title: String,
-      image: String,
-      link: String,
-    },
-  ],
+import bookSchema from './Book';
+import type { BookDocument } from './Book';
+
+import type { Document } from 'mongoose';
+
+interface UserDocument extends Document {
+  username: string;
+  email: string;
+  password: string;
+  savedBooks: BookDocument[];
+}
+
+const userSchema = new Schema<UserDocument>({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    match: [/.+@.+\..+/, 'Must use a valid email address'],
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  // set savedBooks to be an array of data that adheres to the bookSchema
+  savedBooks: [bookSchema],
+},
+// set this to use virtual below
+{
+  toJSON: {
+    virtuals: true,
+  },
 });
 
 userSchema.pre('save', async function (next) {
@@ -24,8 +46,13 @@ userSchema.pre('save', async function (next) {
 });
 
 userSchema.methods.isCorrectPassword = async function (password: string) {
-  return bcrypt.compare(password, this.password);
+  return await bcrypt.compare(password, this.password);
 };
 
-export default model('User', userSchema);
+userSchema.virtual('bookCount').get(function () {
+  return this.savedBooks.length;
+});
 
+const User = model<UserDocument>('User', userSchema);
+
+export default User;

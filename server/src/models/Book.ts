@@ -1,11 +1,42 @@
 import { Schema } from 'mongoose';
 
-export const bookSchema = new Schema({
-  bookId: { type: String, required: true },
-  authors: [String],
-  description: String,
-  title: { type: String, required: true },
-  image: String,
-  link: String,
+import { Document } from 'mongoose';
+
+export interface BookDocument extends Document {
+  bookId: string;
+  authors: string[];
+  description: string;
+  title: string;
+  image?: string;
+  link?: string;
+}
+
+
+const bookSchema = new Schema<BookDocument>({
+  authors: [
+    {
+      type: String,
+    },
+  ],
+  description: {
+    type: String,
+    required: true,
+  },
+  // saved book id from GoogleBooks
+  bookId: {
+    type: String,
+    required: true,
+  },
+  image: {
+    type: String,
+  },
+  link: {
+    type: String,
+  },
+  title: {
+    type: String,
+    required: true,
+  },
 });
 
+export default bookSchema;
